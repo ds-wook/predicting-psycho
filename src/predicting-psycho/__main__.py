@@ -58,10 +58,10 @@ if __name__ == "__main__":
             )
     X_train, X_valid, y_train, y_valid =\
         train_test_split(X, y, test_size=0.2, random_state=94)
-    test_preds = stratified_kfold_model(lgb_clf, 5, X_train, y_train, X_valid)
-    print(f'Accuracy Score: {accuracy_score(y_valid, test_preds):.5f}')
 
+    test_preds = stratified_kfold_model(lgb_clf, 5, X_train, y_train, X_valid)
     y_preds = stratified_kfold_model(lgb_clf, 5, X, y, test)
+    print(f'Accuracy Score: {accuracy_score(y_valid, test_preds):.5f}')
 
     submission['voted'] = y_preds
     submission['voted'] = submission['voted'].astype(np.int64)
