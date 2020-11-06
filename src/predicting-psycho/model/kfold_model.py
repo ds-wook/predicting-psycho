@@ -26,10 +26,8 @@ def kfold_model(
         model.fit(X_train, y_train,
                   eval_set=evals, verbose=True)
 
-        y_preds += model.predict(test).astype(np.int64) / n_fold
-
+        y_preds += model.predict_proba(test)[:, 1].astype(np.float64) / n_fold
         del X_train, X_valid, y_train, y_valid
-
     return y_preds
 
 
@@ -46,15 +44,14 @@ def stratified_kfold_model(
     for fold_n, (train_index, valid_index) in enumerate(splits):
         print(f'{model.__class__.__name__} Learning Start!')
         print(f'Fold: {fold_n + 1}')
-        X_train, X_valid = train[train_index], train[valid_index]
-        y_train, y_valid = target[train_index], target[valid_index]
+        X_train, X_valid = train.iloc[train_index], train.iloc[valid_index]
+        y_train, y_valid = target.iloc[train_index], target.iloc[valid_index]
 
         evals = [(X_train, y_train), (X_valid, y_valid)]
 
-        model.fit(X_train, y_train, eval_set=evals, verbose=True)
+        model.fit(X_train, y_train,
+                  eval_set=evals, verbose=True)
 
-        y_preds += model.predict(test).astype(np.int64) / n_fold
-
+        y_preds += model.predict_proba(test)[:, 1].astype(np.float64) / n_fold
         del X_train, X_valid, y_train, y_valid
-
     return y_preds
