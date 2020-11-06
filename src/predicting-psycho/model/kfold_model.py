@@ -24,6 +24,7 @@ def kfold_model(
         evals = [(X_train, y_train), (X_valid, y_valid)]
 
         model.fit(X_train, y_train,
+                  eval_metric='auc',
                   eval_set=evals, verbose=True)
 
         y_preds += model.predict_proba(test)[:, 1].astype(np.float64) / n_fold
@@ -50,6 +51,7 @@ def stratified_kfold_model(
         evals = [(X_train, y_train), (X_valid, y_valid)]
 
         model.fit(X_train, y_train,
+                  eval_metric='auc',
                   eval_set=evals, verbose=True)
 
         y_preds += model.predict_proba(test)[:, 1].astype(np.float64) / n_fold

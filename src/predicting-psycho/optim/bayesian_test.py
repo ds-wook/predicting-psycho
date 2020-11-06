@@ -4,7 +4,6 @@ from sklearn.model_selection import cross_validate
 from category_encoders.ordinal import OrdinalEncoder
 from sklearn.metrics import make_scorer
 from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import train_test_split
 import pandas as pd
 
 # 데이터 불러오기
@@ -27,9 +26,6 @@ test_x = test_x.astype(replace_dict)
 le_encoder = OrdinalEncoder(list(train_x.columns))
 train_le = le_encoder.fit_transform(train_x, train_y)
 test_le = le_encoder.transform(test_x)
-
-X_train, X_valid, y_train, y_valid =\
-        train_test_split(train_le, train_y, test_size=0.2, random_state=91)
 
 
 def lgbm_cv(
@@ -57,7 +53,7 @@ def lgbm_cv(
             )
 
     scoring = {'acc_score': make_scorer(roc_auc_score)}
-    result = cross_validate(model, X_train, y_train, cv=5, scoring=scoring)
+    result = cross_validate(model, train_le, train_y, cv=5, scoring=scoring)
     accuracy = result['test_acc_score'].mean()
     return accuracy
 
@@ -78,6 +74,6 @@ def xgb_cv(
             random_state=94)
 
     scoring = {'acc_score': make_scorer(roc_auc_score)}
-    result = cross_validate(model, X_train, y_train, cv=5, scoring=scoring)
+    result = cross_validate(model, train_le, train_y, cv=5, scoring=scoring)
     accuracy = result['test_acc_score'].mean()
     return accuracy
