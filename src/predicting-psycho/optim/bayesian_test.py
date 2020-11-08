@@ -1,5 +1,6 @@
 from lightgbm import LGBMClassifier
 from xgboost import XGBClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_validate
 from category_encoders.ordinal import OrdinalEncoder
 from sklearn.metrics import make_scorer
@@ -52,9 +53,9 @@ def lgbm_cv(
                 random_state=94
             )
 
-    scoring = {'acc_score': make_scorer(roc_auc_score)}
+    scoring = {'auc_score': make_scorer(roc_auc_score)}
     result = cross_validate(model, train_le, train_y, cv=5, scoring=scoring)
-    accuracy = result['test_acc_score'].mean()
+    accuracy = result['test_auc_score'].mean()
     return accuracy
 
 
@@ -73,7 +74,24 @@ def xgb_cv(
             gamma=gamma,
             random_state=94)
 
-    scoring = {'acc_score': make_scorer(roc_auc_score)}
+    scoring = {'auc_score': make_scorer(roc_auc_score)}
     result = cross_validate(model, train_le, train_y, cv=5, scoring=scoring)
-    accuracy = result['test_acc_score'].mean()
+    accuracy = result['test_auc_score'].mean()
+    return accuracy
+
+
+def rf_cv(
+        n_estimators: int,
+        max_depth: int,
+        min_samples_split: int) -> float:
+    model = RandomForestClassifier(
+                   n_estimators=int(max(n_estimators, 0)),
+                   max_depth=int(max(max_depth, 1)),
+                   min_samples_split=int(max(min_samples_split, 2)),
+                   n_jobs=-1,
+                   random_state=42,
+                   class_weight="balanced")
+    scoring = {'auc_score': make_scorer(roc_auc_score)}
+    result = cross_validate(model, train_le, train_y, cv=5, scoring=scoring)
+    accuracy = result['test_auc_score'].mean()
     return accuracy

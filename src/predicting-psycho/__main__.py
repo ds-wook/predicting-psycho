@@ -6,6 +6,7 @@ from optim.bayesian_test import xgb_cv
 from optim.bayesian_optim import xgb_parameter
 from optim.bayesian_test import lgbm_cv
 from optim.bayesian_optim import lgbm_parameter
+from model.kfold_model import kfold_model
 from model.kfold_model import stratified_kfold_model
 from category_encoders.ordinal import OrdinalEncoder
 
@@ -34,7 +35,7 @@ if __name__ == "__main__":
 
     lgb_param_bounds = {
         'max_depth': (6, 16),
-        'num_leaves': (24, 1024),
+        'num_leaves': (24, 64),
         'min_child_samples': (10, 200),
         'subsample': (0.5, 1),
         'colsample_bytree': (0.5, 1),
@@ -48,7 +49,7 @@ if __name__ == "__main__":
     # lgbm 분류기
     lgb_clf = LGBMClassifier(
                 verbose=400,
-                n_estimators=500,
+                n_estimators=1000,
                 learning_rate=0.02,
                 random_state=91,
                 max_depth=int(round(bo_lgb['max_depth'])),
@@ -80,7 +81,7 @@ if __name__ == "__main__":
                 subsample=bo_xgb['subsample'],
                 gamma=bo_xgb['gamma']
             )
-    xgb_preds = stratified_kfold_model(xgb_clf, 5, train_le, train_y, test_le)
+    xgb_preds = kfold_model(xgb_clf, 5, train_le, train_y, test_le)
     y_preds = 0.6 * lgb_preds + 0.4 * xgb_preds
     submission['voted'] = y_preds
 
@@ -90,4 +91,4 @@ if __name__ == "__main__":
         else:
             submission.loc[ix, 'voted'] = 0
     submission = submission.astype({'voted': np.int64})
-    submission.to_csv('../../res/bayesian_lighgbm.csv', index=False)
+    submission.to_csv('../../res/bayesian_ensemble.csv', index=False)
