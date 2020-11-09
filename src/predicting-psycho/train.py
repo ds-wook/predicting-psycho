@@ -26,22 +26,17 @@ if __name__ == "__main__":
     train_y = train['voted']
     train_x = train.drop(drop_list + ['voted'], axis=1)
     test_x = test.drop(drop_list, axis=1)
-    train_x = train_x.astype(replace_dict)
-    test_x = test_x.astype(replace_dict)
-    le_encoder = OrdinalEncoder(train_x.columns)
-    train_le = le_encoder.fit_transform(train_x, train_y)
-    test_le = le_encoder.transform(test_x)
-
+    train_ohe = pd.get_dummies(train_x)
+    test_ohe = pd.get_dummies(test_x)
+    print(f'After One Hot Test: {train_ohe.shape}')
+    print(f'After One Hot Test: {test_ohe.shape}')
     X_train, X_valid, y_train, y_valid =\
-        train_test_split(train_le, train_y, test_size=0.2, random_state=91)
+        train_test_split(train_ohe, train_y, test_size=0.2, random_state=91)
 
     lgb_param_bounds = {
         'max_depth': (6, 16),
         'num_leaves': (24, 1024),
-        'min_child_samples': (10, 200),
-        'subsample': (0.5, 1),
         'colsample_bytree': (0.5, 1),
-        'max_bin': (10, 500),
         'reg_lambda': (0.001, 10),
         'reg_alpha': (0.01, 50)
     }
@@ -56,10 +51,7 @@ if __name__ == "__main__":
                 random_state=91,
                 max_depth=int(round(bo_lgb['max_depth'])),
                 num_leaves=int(round(bo_lgb['num_leaves'])),
-                min_child_samples=int(round(bo_lgb['min_child_samples'])),
-                subsample=max(min(bo_lgb['subsample'], 1), 0),
                 colsample_bytree=max(min(bo_lgb['colsample_bytree'], 1), 0),
-                max_bin=max(int(round(bo_lgb['max_bin'])), 10),
                 reg_lambda=max(bo_lgb['reg_lambda'], 0),
                 reg_alpha=max(bo_lgb['reg_alpha'], 0)
             )
@@ -80,8 +72,8 @@ if __name__ == "__main__":
                 max_depth=int(round(bo_xgb['max_depth'])),
                 subsample=bo_xgb['subsample'],
                 gamma=bo_xgb['gamma'])
+
     lgb_preds = stratified_kfold_model(lgb_clf, 5, X_train, y_train, X_valid)
     xgb_preds = stratified_kfold_model(xgb_clf, 5, X_train, y_train, X_valid)
-
     print(f'LGBM AUC Score: {roc_auc_score(y_valid, lgb_preds):.5f}')
     print(f'XGB AUC Score: {roc_auc_score(y_valid, xgb_preds):.5f}')

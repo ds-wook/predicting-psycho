@@ -6,9 +6,7 @@ from optim.bayesian_test import xgb_cv
 from optim.bayesian_optim import xgb_parameter
 from optim.bayesian_test import lgbm_cv
 from optim.bayesian_optim import lgbm_parameter
-from model.kfold_model import kfold_model
 from model.kfold_model import stratified_kfold_model
-from category_encoders.ordinal import OrdinalEncoder
 
 
 if __name__ == "__main__":
@@ -27,21 +25,20 @@ if __name__ == "__main__":
     train_y = train['voted']
     train_x = train.drop(drop_list + ['voted'], axis=1)
     test_x = test.drop(drop_list, axis=1)
-    train_x = train_x.astype(replace_dict)
-    test_x = test_x.astype(replace_dict)
-    le_encoder = OrdinalEncoder(list(train_x.columns))
-    train_le = le_encoder.fit_transform(train_x, train_y)
-    test_le = le_encoder.transform(test_x)
+    train_ohe = pd.get_dummies(train_x)
+    test_ohe = pd.get_dummies(test_x)
+    print(f'After One Hot Test: {train_ohe.shape}')
+    print(f'After One Hot Test: {test_ohe.shape}')
 
     lgb_param_bounds = {
-        'max_depth': (6, 16),
-        'num_leaves': (24, 64),
+        'max_depth': (4, 12),
+        'num_leaves': (24, 100),
         'min_child_samples': (10, 200),
         'subsample': (0.5, 1),
         'colsample_bytree': (0.5, 1),
         'max_bin': (10, 500),
-        'reg_lambda': (0.001, 10),
-        'reg_alpha': (0.01, 50)
+        'reg_lambda': (0, 0.5),
+        'reg_alpha': (0, 0.5)
     }
 
     bo_lgb = lgbm_parameter(lgbm_cv, lgb_param_bounds)
@@ -61,8 +58,9 @@ if __name__ == "__main__":
                 reg_lambda=max(bo_lgb['reg_lambda'], 0),
                 reg_alpha=max(bo_lgb['reg_alpha'], 0)
             )
-    lgb_preds = stratified_kfold_model(lgb_clf, 5, train_le, train_y, test_le)
-
+    lgb_preds =\
+        stratified_kfold_model(lgb_clf, 5, train_ohe, train_y, test_ohe)
+    '''
     # xgb 분류기
     xgb_param_bounds = {
         'learning_rate': (0.001, 0.1),
@@ -81,14 +79,10 @@ if __name__ == "__main__":
                 subsample=bo_xgb['subsample'],
                 gamma=bo_xgb['gamma']
             )
-    xgb_preds = kfold_model(xgb_clf, 5, train_le, train_y, test_le)
+    xgb_preds = kfold_model(xgb_clf, 5, train_ohe, train_y, test_ohe)
     y_preds = 0.6 * lgb_preds + 0.4 * xgb_preds
+    '''
+    y_preds = lgb_preds + 1.0
     submission['voted'] = y_preds
-
-    for ix, row in submission.iterrows():
-        if row['voted'] > 0.5:
-            submission.loc[ix, 'voted'] = 1
-        else:
-            submission.loc[ix, 'voted'] = 0
-    submission = submission.astype({'voted': np.int64})
-    submission.to_csv('../../res/bayesian_ensemble.csv', index=False)
+    submission['voted'] = submission['voted'].astype(np.float32)
+    submission.to_csv('../../res/bayesian_lgbm.csv', index=False)
