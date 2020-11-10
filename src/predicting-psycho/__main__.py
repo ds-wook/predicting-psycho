@@ -23,6 +23,15 @@ if __name__ == "__main__":
     replace_dict = {'education': str, 'engnat': str,
                     'married': str, 'urban': str}
     train_y = train['voted']
+    wf_list = [f'wf_0{i}' for i in range(1, 4)]
+    wr_list =\
+        [f'wr_0{i}' if i in range(1, 10) else f'wr_{i}' for i in range(1, 14)]
+    train['wf_total'] = train[wf_list].sum(axis=1)
+    train['wr_total'] = train[wr_list].sum(axis=1)
+    test['wf_total'] = test[wf_list].sum(axis=1)
+    test['wr_total'] = test[wr_list].sum(axis=1)
+    train = train.astype(replace_dict)
+    test = test.astype(replace_dict)
     train_x = train.drop(drop_list + ['voted'], axis=1)
     test_x = test.drop(drop_list, axis=1)
     train_ohe = pd.get_dummies(train_x)
@@ -60,7 +69,7 @@ if __name__ == "__main__":
             )
     lgb_preds =\
         stratified_kfold_model(lgb_clf, 5, train_ohe, train_y, test_ohe)
-    '''
+
     # xgb 분류기
     xgb_param_bounds = {
         'learning_rate': (0.001, 0.1),
@@ -79,10 +88,11 @@ if __name__ == "__main__":
                 subsample=bo_xgb['subsample'],
                 gamma=bo_xgb['gamma']
             )
-    xgb_preds = kfold_model(xgb_clf, 5, train_ohe, train_y, test_ohe)
+    xgb_preds =\
+        stratified_kfold_model(xgb_clf, 5, train_ohe, train_y, test_ohe)
     y_preds = 0.6 * lgb_preds + 0.4 * xgb_preds
-    '''
-    y_preds = lgb_preds + 1.0
+
+    y_preds += 1.0
     submission['voted'] = y_preds
     submission['voted'] = submission['voted'].astype(np.float32)
-    submission.to_csv('../../res/bayesian_lgbm.csv', index=False)
+    submission.to_csv('../../res/bayesian_ensemble.csv', index=False)
