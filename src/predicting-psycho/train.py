@@ -8,6 +8,8 @@ from optim.bayesian_optim import lgbm_parameter
 from model.kfold_model import stratified_kfold_model
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score
+from cleaning.preprocessing import fea_eng_encoding
+
 
 if __name__ == "__main__":
     # 데이터 불러오기
@@ -15,35 +17,16 @@ if __name__ == "__main__":
     test = pd.read_csv('../../data/test_x.csv')
     submission = pd.read_csv('../../data/sample_submission.csv')
 
-    drop_list = ['QaE', 'QbE', 'QcE', 'QdE', 'QeE',
-                 'QfE', 'QgE', 'QhE', 'QiE', 'QjE',
-                 'QkE', 'QlE', 'QmE', 'QnE', 'QoE',
-                 'QpE', 'QqE', 'QrE', 'QsE', 'QtE'] + ['index', 'hand']
+    train_ohe, test_ohe, train_y = fea_eng_encoding(train, test)
 
-    replace_dict = {'education': str, 'engnat': str,
-                    'married': str, 'urban': str}
-    train_y = train['voted']
-    wf_list = [f'wf_0{i}' for i in range(1, 4)]
-    wr_list =\
-        [f'wr_0{i}' if i in range(1, 10) else f'wr_{i}' for i in range(1, 14)]
-    train['wf_total'] = train[wf_list].sum(axis=1)
-    train['wr_total'] = train[wr_list].sum(axis=1)
-    test['wf_total'] = test[wf_list].sum(axis=1)
-    test['wr_total'] = test[wr_list].sum(axis=1)
-    train = train.astype(replace_dict)
-    test = test.astype(replace_dict)
-    train_x = train.drop(drop_list + ['voted'], axis=1)
-    test_x = test.drop(drop_list, axis=1)
-    train_ohe = pd.get_dummies(train_x)
-    test_ohe = pd.get_dummies(test_x)
     print(f'After One Hot Test: {train_ohe.shape}')
     print(f'After One Hot Test: {test_ohe.shape}')
     X_train, X_valid, y_train, y_valid =\
         train_test_split(train_ohe, train_y, test_size=0.2, random_state=91)
 
     lgb_param_bounds = {
-        'max_depth': (4, 12),
-        'num_leaves': (24, 100),
+        'max_depth': (6, 10),
+        'num_leaves': (24, 1024),
         'min_child_samples': (10, 200),
         'subsample': (0.5, 1),
         'colsample_bytree': (0.5, 1),
